@@ -44,3 +44,43 @@
 .local-map-controls button:hover{background:#1d180d}
 @media(max-width:1000px){.local-gta-map{height:580px}}
 @media(max-width:720px){.local-gta-map{height:500px}}
+
+/* BLACK ACE personalisation + fluidity */
+html{font-size:16px;scroll-behavior:smooth}
+html[data-font-size="1"]{font-size:14px}
+html[data-font-size="2"]{font-size:16px}
+html[data-font-size="3"]{font-size:18px}
+html[data-wallpaper="black-gold"] body{background:radial-gradient(circle at 72% 0,#211b0b 0,transparent 28%),#070707}
+html[data-wallpaper="midnight"] body{background:radial-gradient(circle at 70% 0,#0b1730 0,transparent 34%),linear-gradient(160deg,#04070c,#090d16 55%,#040608)}
+html[data-wallpaper="carbon"] body{background-color:#080808;background-image:linear-gradient(45deg,#0d0d0d 25%,transparent 25%),linear-gradient(-45deg,#0d0d0d 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#0d0d0d 75%),linear-gradient(-45deg,transparent 75%,#0d0d0d 75%);background-size:28px 28px;background-position:0 0,0 14px,14px -14px,-14px 0}
+html[data-wallpaper="red-night"] body{background:radial-gradient(circle at 75% 0,#2d0909 0,transparent 32%),linear-gradient(160deg,#070505,#100707 60%,#050505)}
+html[data-wallpaper="clean"] body{background:linear-gradient(145deg,#0a0b0d,#141619 55%,#0b0c0e)}
+html[data-wallpaper="custom"] body{background-color:#070707;background-image:linear-gradient(180deg,rgba(0,0,0,.28),rgba(0,0,0,.58)),var(--custom-wallpaper);background-position:center,center;background-size:cover,cover;background-attachment:fixed,fixed;background-repeat:no-repeat,no-repeat}
+.wallpaper-upload{display:grid;gap:10px}.wallpaper-preview{height:190px;border:1px dashed var(--line);border-radius:14px;overflow:hidden;display:grid;place-items:center;background:#090909;color:var(--muted)}.wallpaper-preview img{width:100%;height:100%;object-fit:cover;display:block}
+
+.shell,.sidebar,.panel,.topbar,.modal,.login-card{backface-visibility:hidden;transform:translateZ(0)}
+.content{contain:layout style}
+#view{animation:baPageIn .18s ease-out}
+@keyframes baPageIn{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
+html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+.btn,.nav button,.tab,.panel,.conv,.product-card{transition:transform .14s ease,border-color .14s ease,background-color .14s ease,filter .14s ease,opacity .14s ease}
+.btn:active,.nav button:active,.tab:active{transform:scale(.98)}
+.nav button span{display:inline-grid;place-items:center;width:1.55em;height:1.55em;margin-right:.35em;transition:font-size .15s ease}
+html[data-icon-size="1"] .nav button span{font-size:.85em}
+html[data-icon-size="2"] .nav button span{font-size:1em}
+html[data-icon-size="3"] .nav button span{font-size:1.25em}
+html[data-icon-size="1"] .brandmark,.preview-icon{transform:scale(.88)}
+html[data-icon-size="3"] .brandmark{transform:scale(1.12)}
+.paris-clock{display:grid;justify-items:end;line-height:1.05;min-width:138px}
+.paris-clock b{font-variant-numeric:tabular-nums;color:var(--gold);font-size:.96rem}
+.paris-clock span{font-size:.68rem;color:var(--muted);margin-top:4px;text-transform:capitalize}
+.prefs-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:16px}
+.level-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.level-picker .level.active{border-color:#7c642b;background:#1c170b;color:#f2d984;box-shadow:inset 0 0 0 1px #43371b}
+.preview-shell{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0a0a0a99}
+.preview-icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;border:1px solid #6d5928;background:#17130b;color:#e4c875;font-weight:900;transition:transform .15s ease}
+html[data-icon-size="1"] .preview-icon{transform:scale(.8)}
+html[data-icon-size="2"] .preview-icon{transform:scale(1)}
+html[data-icon-size="3"] .preview-icon{transform:scale(1.2)}
+.game-layout{max-width:1180px;margin:0 auto}.game-panel{overflow:hidden}.flappy-wrap{position:relative;border:1px solid #3e331d;border-radius:18px;overflow:hidden;background:#070707;box-shadow:0 24px 60px #0008}.flappy-wrap canvas{display:block;width:100%;height:auto;min-height:320px;touch-action:manipulation;cursor:pointer}.game-overlay{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;padding:24px;background:linear-gradient(#050505b0,#050505e6);backdrop-filter:blur(3px);z-index:3}.game-overlay.hidden{display:none}.game-logo{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(145deg,#2c230c,#0b0b0b);border:1px solid #8c7130;color:#ecd17d;font-weight:950;font-size:24px;letter-spacing:3px;box-shadow:0 14px 35px #0009}.game-final{font-size:58px;font-weight:950;color:#e0c36e;line-height:1}.game-help{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:.76rem;letter-spacing:.05em}
+@media(max-width:820px){.prefs-grid{grid-template-columns:1fr}.paris-clock{display:none}.user-handle{display:none}.level-picker{grid-template-columns:1fr}.flappy-wrap canvas{min-height:280px}}
