@@ -1,15 +1,32 @@
-BLACK ACE V12 PLUS - VERSION REGROUPEE
+BLACK ACE V13.1 — ARCADE COMPLET
 
-Inclus :
-- Interface V12 complète
-- Paramètres personnels : fonds, import d'image, tailles icônes/caractères niveau 1/2/3, animations
-- Heure/date de Paris
-- Fond personnalisé Supabase
-- Flappy Ace revu + classement global Supabase
-- Navigation/onglets sécurisés contre les doubles clics et changements de page concurrents
-- Nettoyage correct des timers/écouteurs lors des changements d'onglets
-- Stock plus lisible avec libellés précis
-- Filtres Stock : Tout / Vente / Achat-Rachat
-- Prix Vente et Achat/Rachat clairement séparés
-- Catégories de stock conservées en second niveau de filtre
-- Mots de passe : jamais stockés/affichés en clair. En cas d'oubli, définir un nouveau mot de passe depuis Comptes.
+Arcade : 13 jeux jouables et terminés
+- Flappy Ace
+- Snake
+- Dino Run
+- Pong Ace
+- Breakout
+- 2048 Ace
+- Block Puzzle
+- Falling Blocks
+- Street Runner
+- Memory
+- Puissance 4 contre ordinateur
+- Morpion contre ordinateur
+- Mini Golf (3 trous)
+
+Chaque jeu possède un classement Top 25 séparé enregistré dans Supabase.
+
+Tournois :
+- création / inscription / désinscription
+- formats chacun pour soi, 1v1 et équipes de 2
+- lancement par le créateur
+- score de manche envoyé directement depuis le jeu
+- meilleur score conservé pendant la manche
+- validation de manche
+- élimination automatique
+- manche suivante / finale
+- podium final
+- suppression du tournoi par son créateur ou super-admin
+
+Les autres fonctions de la tablette restent présentes : comptes/recherche/suppression, stock Achat/Vente, fonds d'écran, paramètres, classement, etc.
