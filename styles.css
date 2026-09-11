@@ -97,3 +97,11 @@ html[data-icon-size="3"] .preview-icon{transform:scale(1.2)}
 @media(max-width:760px){.game-layout{grid-template-columns:1fr}.arcade-controls{position:relative}.arcade-control{flex:1 1 58px}.tournament-card .line.wrap{align-items:stretch}.tournament-card .line.wrap .btn{flex:1 1 140px}}
 .rdv-request{border-color:rgba(212,175,55,.55)!important;background:linear-gradient(180deg,rgba(212,175,55,.08),rgba(255,255,255,.015))!important}
 .status.warn{border-color:rgba(212,175,55,.45);color:var(--gold)}
+
+/* V13.5 */
+.nav button{position:relative}
+.notif-dot{display:none;width:9px;height:9px;border-radius:50%;background:#e53935;box-shadow:0 0 0 3px rgba(229,57,53,.18);margin-left:auto}
+.notif-dot.show{display:inline-block}
+.category-admin-grid{display:grid;gap:8px}
+.category-admin-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.025)}
+@media(max-width:760px){.category-admin-row{align-items:flex-start;flex-direction:column}}
