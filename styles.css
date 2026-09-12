@@ -105,3 +105,11 @@ html[data-icon-size="3"] .preview-icon{transform:scale(1.2)}
 .category-admin-grid{display:grid;gap:8px}
 .category-admin-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.025)}
 @media(max-width:760px){.category-admin-row{align-items:flex-start;flex-direction:column}}
+
+/* V13.6.1 — Stock groupe : cartes/images alignées sur le catalogue client */
+.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.product-grid .product-card{display:grid;gap:11px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0;overflow:hidden}
+.product-grid .product-img{width:100%;aspect-ratio:16/9;margin:0;background:#090909;border:1px solid #26231c;border-radius:7px;overflow:hidden;display:grid;place-items:center;color:#5f594b}
+.product-grid .product-img img{display:block;width:100%;height:100%;object-fit:cover;object-position:center center}
+@media(max-width:1000px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.product-grid{grid-template-columns:1fr}}
