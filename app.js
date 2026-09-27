@@ -177,7 +177,24 @@ async function catalogView(c){
   $$('.edit-cat').forEach(b=>b.onclick=()=>categoryModal(c,cats.find(x=>x.id===b.dataset.id),roles));
   $$('.delete-cat-direct').forEach(b=>b.onclick=async()=>{const cat=cats.find(x=>x.id===b.dataset.id);if(!cat||!confirm(`Supprimer définitivement la catégorie « ${cat.name} » ?`))return;try{await api('categories?id='+encodeURIComponent(cat.id),'DELETE');toast('Catégorie supprimée');await catalogView(c)}catch(err){toast('Suppression impossible : '+err.message)}});
   $('#newProd')?.addEventListener('click',()=>productModal(c,cats,null));
-  async function changeDailyMax(id,delta){const p=prods.find(x=>x.id===id);if(!p)return;const next=Math.max(0,Number(p.dailyClientMax||0)+delta);try{await api('products','PUT',{id:p.id,dailyClientMax:next});p.dailyClientMax=next;toast(`${p.name} : maximum ${next||'illimité'} par client / jour`);await catalogView(c)}catch(err){toast(err.message)}}
+  // Limites/jour : mise à jour instantanée à l'écran, puis sauvegarde groupée en arrière-plan.
+  // Cela évite la latence réseau et le rechargement complet de la page à chaque clic.
+  const dailyMaxTimers=new Map(), dailyMaxSaved=new Map();
+  dailyQuick.forEach(p=>dailyMaxSaved.set(p.id,Number(p.dailyClientMax||0)));
+  function changeDailyMax(id,delta){
+    const p=prods.find(x=>x.id===id);if(!p)return;
+    const next=Math.max(0,Number(p.dailyClientMax||0)+delta);
+    if(next===Number(p.dailyClientMax||0))return;
+    p.dailyClientMax=next;
+    const out=$(`.daily-max-value[data-id="${id}"]`,c);if(out)out.textContent=String(next);
+    const card=out?.closest('.panel.flat');const hint=card?.querySelector('.muted');if(hint)hint.textContent=next>0?'par client / jour':'illimité';
+    clearTimeout(dailyMaxTimers.get(id));
+    dailyMaxTimers.set(id,setTimeout(async()=>{
+      const value=Number(p.dailyClientMax||0);
+      try{await api('products','PUT',{id:p.id,dailyClientMax:value});dailyMaxSaved.set(id,value)}
+      catch(err){const previous=Number(dailyMaxSaved.get(id)||0);p.dailyClientMax=previous;if(out)out.textContent=String(previous);if(hint)hint.textContent=previous>0?'par client / jour':'illimité';toast('Sauvegarde impossible : '+err.message)}
+    },500));
+  }
   $$('.daily-max-plus',c).forEach(b=>b.onclick=()=>changeDailyMax(b.dataset.id,1));
   $$('.daily-max-minus',c).forEach(b=>b.onclick=()=>changeDailyMax(b.dataset.id,-1));
   render();
