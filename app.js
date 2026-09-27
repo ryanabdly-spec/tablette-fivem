@@ -46,7 +46,7 @@ async function api(path,method='GET',data){
   if(route==='login'&&j.token)localStorage.setItem('ba_token',j.token);if(route==='logout')localStorage.removeItem('ba_token');return j
 }
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
-function modal(html){const b=document.createElement('div');b.className='modal-back';b.innerHTML='<div class="modal"><div class="line" style="margin-bottom:10px"><span></span><button type="button" class="btn small close-modal">Fermer</button></div>'+html+'</div>';document.body.appendChild(b);$('.close-modal',b).onclick=()=>b.remove();b.addEventListener('click',e=>{if(e.target===b)b.remove()});return b}
+function modal(html){const b=document.createElement('div');b.className='modal-back';b.innerHTML='<div class="modal"><div class="line" style="margin-bottom:10px"><span></span><button type="button" class="btn small close-modal">Fermer</button></div>'+html+'</div>';document.body.appendChild(b);$('.close-modal',b).onclick=()=>b.remove();return b}
 function parsePhones(v){return String(v||'').split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean).slice(0,8)}
 async function fileToDataUrl(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)})}
 async function optimizeItemImage(file){
