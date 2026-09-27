@@ -119,3 +119,13 @@ html[data-icon-size="3"] .preview-icon{transform:scale(1.2)}
 .pgp-panel{border-color:rgba(212,175,55,.28);background:linear-gradient(135deg,rgba(212,175,55,.06),rgba(255,255,255,.018))}
 .pgp-switch{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}.pgp-switch input{position:absolute;opacity:0;pointer-events:none}.pgp-slider{width:48px;height:26px;border-radius:999px;background:#242424;border:1px solid #3b3b3b;position:relative;transition:.18s}.pgp-slider:after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;left:3px;top:3px;background:#8b8b8b;transition:.18s}.pgp-switch input:checked+.pgp-slider{background:#2a220d;border-color:#8b7130;box-shadow:0 0 0 3px rgba(212,175,55,.08)}.pgp-switch input:checked+.pgp-slider:after{left:25px;background:#e0c36e}.pgp-switch input:disabled+.pgp-slider{opacity:.5}.pgp-rewards{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.pgp-rewards.show{display:grid}.pgp-reward{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid rgba(212,175,55,.2);border-radius:12px;background:#0b0b0b}.pgp-reward b{font-size:22px;color:var(--gold)}
 @media(max-width:620px){.pgp-panel .section-head{align-items:flex-start;gap:14px}.pgp-rewards{grid-template-columns:1fr}}
+
+/* V14.1 — Décompte PGP 24h */
+.pgp-countdown-wrap{margin-top:14px;padding:13px 15px;border:1px solid rgba(212,175,55,.2);border-radius:12px;background:#090909;display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:center}
+.pgp-countdown-wrap>b{font-size:24px;letter-spacing:.08em;color:var(--gold);font-variant-numeric:tabular-nums}
+.pgp-countdown-wrap>small{grid-column:1/-1}.pgp-countdown-wrap.ready{border-color:rgba(70,190,110,.35);background:rgba(50,150,85,.08)}.pgp-countdown-wrap.ready>b{color:#78dc9a}
+.pgp-admin-countdown{font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:620px){.pgp-countdown-wrap{grid-template-columns:1fr}.pgp-countdown-wrap>small{grid-column:auto}.pgp-countdown-wrap>b{font-size:21px}}
+.stock-drop{transition:outline .15s ease,transform .15s ease;cursor:copy}
+.stock-drop.drag-over{outline:2px dashed #d4af37;outline-offset:-4px;transform:scale(.99)}
+.stock-value{min-width:34px;text-align:center;font-size:17px}
