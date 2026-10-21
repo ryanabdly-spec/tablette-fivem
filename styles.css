@@ -129,3 +129,8 @@ html[data-icon-size="3"] .preview-icon{transform:scale(1.2)}
 .stock-drop{transition:outline .15s ease,transform .15s ease;cursor:copy}
 .stock-drop.drag-over{outline:2px dashed #d4af37;outline-offset:-4px;transform:scale(.99)}
 .stock-value{min-width:34px;text-align:center;font-size:17px}
+
+/* V15.5 - suppression messages / conversations */
+.bubble{position:relative;padding-right:34px}
+.msg-delete{position:absolute;top:6px;right:7px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(0,0,0,.22);color:inherit;cursor:pointer;font-size:18px;line-height:20px;opacity:.55}
+.msg-delete:hover{opacity:1;background:rgba(160,30,30,.55)}
