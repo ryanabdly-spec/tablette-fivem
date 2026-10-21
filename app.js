@@ -7,6 +7,7 @@ const PERM_GROUPS={
   'Commandes & finances':[['orders.view','Voir les commandes'],['orders.edit','Gérer les commandes'],['orders.history','Voir l’historique des commandes'],['finance.view','Voir les finances'],['finance.edit','Modifier le cash']],
   'Communication':[['messages.manage','Gérer les messages'],['appointments.manage','Gérer les rendez-vous'],['announcements.edit','Publier des annonces']],
   'Administration':[['users.view','Voir les comptes complets'],['users.info.view','Voir les informations des comptes'],['users.password.view','Réinitialiser un mot de passe oublié'],['users.edit','Modifier les comptes'],['roles.edit','Modifier les rôles'],['logs.view','Voir les logs'],['settings.edit','Modifier les paramètres']],
+  'Événements':[['events.view','Voir les événements'],['events.edit','Gérer les dons, réceptions et groupes']],
   'Boutique':[['shop.access','Accéder à la boutique']]
 };
 const ORDER_STATUSES=['Nouvelle','En attente','Acceptée','Préparation','Prête','Terminée','Refusée','Annulée'];
@@ -29,6 +30,7 @@ async function api(path,method='GET',data){
   else if(route==='arcade-tournaments') url=API_ROOT+'/blackace-arcade/tournaments'+(query?'?'+query:'');
   else if(route==='wallpaper') url=API_ROOT+'/blackace-wallpaper'+(query?'?'+query:'');
   else if(route==='reports') url=API_ROOT+'/blackace-reports'+(query?'?'+query:'');
+  else if(route==='events') url=API_ROOT+'/blackace-events'+(query?'?'+query:'');
   else if(route==='maintenance') url=API_ROOT+'/blackace-maintenance'+(query?'?'+query:'');
   else if(route==='pgp') url=API_ROOT+'/blackace-pgp'+(query?'?'+query:'');
   else if(route==='fivem-presence') url=API_ROOT+'/blackace-fivem-presence'+(query?'?'+query:'');
@@ -75,7 +77,7 @@ function startParisClock(){const el=$('#parisClock');if(!el)return()=>{};const t
 
 async function boot(){applyUiPrefs();try{const m=await api('me');state.user=m.user;if(!state.user)return login();await syncRemoteWallpaper();const b=await api('bootstrap');state.user=b.user;state.settings=b.settings||state.settings;shell()}catch{login()}}
 function login(){cleanup();app.innerHTML=`<div class="login"><div class="login-card"><div class="brandmark">BA</div><div class="eyebrow">BLACK ACE PRIVATE NETWORK</div><h1>Connexion</h1><p class="muted">Utilise ton nom d'utilisateur et ton mot de passe.</p><form id="loginForm" class="stack"><input class="input" name="username" autocomplete="username" placeholder="Nom d'utilisateur" required><input class="input" name="password" type="password" autocomplete="current-password" placeholder="Mot de passe" required><button class="btn gold">Se connecter</button><div id="loginErr" class="muted"></div></form></div></div>`;$('#loginForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api('login','POST',{username:f.get('username'),password:f.get('password')});boot()}catch(err){$('#loginErr').textContent=err.message}}}
-function navItems(){const n=[['home','⌂','Accueil']];if(isClient()){n.push(['shop','◇','Boutique'],['orders','▣','Commandes'],['announcements','◈','Annonces'],['messages','✉','Messages'],['appointments','⌖','Rendez-vous'])}else{n.push(['manage','◆','Gestion'],['messages','✉','Messages'],['appointments','⌖','Rendez-vous'],['game','🎮','Arcade']);if(can('users.view')||can('roles.edit')||can('settings.edit')||can('logs.view')||can('widgets.manage'))n.push(['admin','⚙','Admin'])}n.push(['reports','⚠','Signalements'],['preferences','⚙','Paramètres']);return n}
+function navItems(){const n=[['home','⌂','Accueil']];if(isClient()){n.push(['shop','◇','Boutique'],['orders','▣','Commandes'],['announcements','◈','Annonces'],['messages','✉','Messages'],['appointments','⌖','Rendez-vous'])}else{n.push(['manage','◆','Gestion'],['messages','✉','Messages'],['appointments','⌖','Rendez-vous']);if(can('events.view'))n.push(['events','♧','Événements']);n.push(['game','🎮','Arcade']);if(can('users.view')||can('roles.edit')||can('settings.edit')||can('logs.view')||can('widgets.manage'))n.push(['admin','⚙','Admin'])}n.push(['reports','⚠','Signalements'],['preferences','⚙','Paramètres']);return n}
 
 function notifSeenKey(){return `ba_messages_seen_${state.user?.id||'anon'}`}
 function latestIncoming(convs=[]){let best=0;for(const c of convs)for(const m of (c.messages||[]))if(m.senderId!==state.user?.id)best=Math.max(best,new Date(m.createdAt||0).getTime()||0);return best}
@@ -105,10 +107,10 @@ async function go(page,keep=false){
   if(state.navigating){state.pendingPage=page;return}
   state.navigating=true;state.pendingPage=null;cleanup();state.page=page;
   $$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  const titles={home:'Accueil',shop:'Boutique',orders:'Commandes',announcements:'Annonces',manage:'Gestion',messages:'Messages',appointments:'Rendez-vous',game:'Arcade & Tournois',admin:'Administration',reports:'Signalements',preferences:'Paramètres'};
+  const titles={home:'Accueil',shop:'Boutique',orders:'Commandes',announcements:'Annonces',manage:'Gestion',messages:'Messages',appointments:'Rendez-vous',game:'Arcade & Tournois',admin:'Administration',reports:'Signalements',events:'Événements',preferences:'Paramètres'};
   const title=$('#pageTitle'),c=$('#view');if(title)title.textContent=titles[page]||page;if(!c){state.navigating=false;return}
   c.innerHTML='<div class="panel muted">Chargement…</div>';
-  try{if(page==='home')await home(c);else if(page==='shop')await shop(c);else if(page==='orders')await orders(c);else if(page==='announcements')await clientAnnouncements(c);else if(page==='manage')await manage(c);else if(page==='messages')await messages(c);else if(page==='appointments')await appointments(c);else if(page==='game')game(c);else if(page==='admin')await admin(c);else if(page==='reports')await reports(c);else if(page==='preferences')preferences(c)}catch(e){if(state.page===page)c.innerHTML=`<div class="panel"><b>Erreur</b><p class="muted">${esc(e.message)}</p><button class="btn" id="retryPage">Réessayer</button></div>`;$('#retryPage')?.addEventListener('click',()=>go(page))}
+  try{if(page==='home')await home(c);else if(page==='shop')await shop(c);else if(page==='orders')await orders(c);else if(page==='announcements')await clientAnnouncements(c);else if(page==='manage')await manage(c);else if(page==='messages')await messages(c);else if(page==='appointments')await appointments(c);else if(page==='game')game(c);else if(page==='admin')await admin(c);else if(page==='reports')await reports(c);else if(page==='events')await eventsView(c);else if(page==='preferences')preferences(c)}catch(e){if(state.page===page)c.innerHTML=`<div class="panel"><b>Erreur</b><p class="muted">${esc(e.message)}</p><button class="btn" id="retryPage">Réessayer</button></div>`;$('#retryPage')?.addEventListener('click',()=>go(page))}
   finally{state.navigating=false;const next=state.pendingPage;state.pendingPage=null;if(next&&next!==state.page)setTimeout(()=>go(next),0)}
 }
 
