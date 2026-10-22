@@ -1,4 +1,4 @@
-/* BLACK ACE V16.1 — Fiches partenaires reliées à leur inventaire propre, synchronisé aux dons. */
+/* BLACK ACE V16.2 — Un seul stock global Événements, relié à toutes les fiches. */
 const EVENT_ITEMS=[
   {name:'Graines',icon:'🌰',unit:'pcs'},
   {name:'Eau',icon:'💧',unit:'L'},
@@ -18,16 +18,16 @@ function eventExportCsv(rows,groups){const names=Object.fromEntries(groups.map(g
 async function eventsView(c){
   if(!can('events.view')){c.innerHTML='<div class="panel">Tu n’as pas accès à la rubrique Événements.</div>';return}
   const model={groups:[],groupId:'',view:'group',showArchived:false,filters:{groupId:'',from:'',to:'',type:'all'},requestId:0};
-  let alive=true;const stockQueues=new Map(),groupStockQueues=new Map();let liveRefreshTimer=null;state.pageCleanup=()=>{alive=false;model.requestId++;if(liveRefreshTimer)clearInterval(liveRefreshTimer);stockQueues.forEach(q=>{if(q.timer)clearTimeout(q.timer);if(q.delta)void flushStock(q)});groupStockQueues.forEach(q=>{if(q.timer)clearTimeout(q.timer);if(q.delta)void flushGroupStock(q)})};
+  let alive=true;const stockQueues=new Map();let liveRefreshTimer=null;state.pageCleanup=()=>{alive=false;model.requestId++;if(liveRefreshTimer)clearInterval(liveRefreshTimer);stockQueues.forEach(q=>{if(q.timer)clearTimeout(q.timer);if(q.delta)void flushStock(q)})};
   const editing=()=>can('events.edit');
   async function loadGroups(){model.groups=await api('events?kind=groups');const saved=sessionStorage.getItem('ba_events_group');const active=model.groups.filter(g=>g.active);if(!model.groupId||!model.groups.some(g=>g.id===model.groupId))model.groupId=active.find(g=>g.id===saved)?.id||active[0]?.id||model.groups[0]?.id||''}
   async function fetchRows(filter){const params=new URLSearchParams({kind:'entries',pageSize:'250'});if(filter.groupId)params.set('groupId',filter.groupId);if(filter.from)params.set('from',filter.from);if(filter.to)params.set('to',filter.to);if(filter.type&&filter.type!=='all')params.set('type',filter.type);let all=[],page=0;
     do {if(!alive)break;params.set('page',String(page));const ret=await api('events?'+params.toString());all.push(...(ret.entries||[]));if(all.length>=(ret.total||0)||!(ret.entries||[]).length)break;page++;if(page>99)throw new Error('Historique trop volumineux. Utilise un filtre de période.')}while(true);return all}
   const currentGroup=()=>model.groups.find(g=>g.id===model.groupId);
-  function groupCard(g){return `<button type="button" class="ev-group ${(model.view==='group'||model.view==='inventory')&&model.groupId===g.id?'active':''} ${!g.active?'archived':''}" data-ev-group="${esc(g.id)}"><span class="ev-group-icon">♣</span><span><b>${esc(g.name)}</b><small>${g.active?'En cours':'Archivé'} · Inventaire lié ↗</small></span><span class="ev-group-arrow">→</span></button>`}
+  function groupCard(g){return `<button type="button" class="ev-group ${model.view==='group'&&model.groupId===g.id?'active':''} ${!g.active?'archived':''}" data-ev-group="${esc(g.id)}"><span class="ev-group-icon">♣</span><span><b>${esc(g.name)}</b><small>${g.active?'En cours':'Archivé'} · Dons / réceptions</small></span><span class="ev-group-arrow">→</span></button>`}
   function layout(){const visible=model.groups.filter(g=>g.active||model.showArchived);c.innerHTML=`<div class="ev-shell">
     <div class="ev-banner"><div><div class="eyebrow">BLACK ACE • SUIVI PARTENAIRES</div><h2>Événements</h2><p>Dons, réceptions, suivi des groupes et réserve commune automatisée.</p></div><div class="ev-banner-actions"><button class="btn" id="evReload">↻ Actualiser</button>${editing()?'<button class="btn gold" id="evCreateGroup">+ Nouveau groupe</button>':''}</div></div>
-    <div class="ev-top-nav"><button class="ev-nav ${(model.view==='group'||model.view==='inventory')?'active':''}" id="evGroupTab">♣ Fiches des groupes</button><button class="ev-nav ${model.view==='stock'?'active':''}" id="evStockTab">▤ Notre stock global</button><button class="ev-nav ${model.view==='global'?'active':''}" id="evGlobalTab">▥ Suivi global</button><label class="ev-showarch"><input type="checkbox" id="evShowArchived" ${model.showArchived?'checked':''}> Archivés</label></div>
+    <div class="ev-top-nav"><button class="ev-nav ${model.view==='group'?'active':''}" id="evGroupTab">♣ Fiches des groupes</button><button class="ev-nav ${model.view==='stock'?'active':''}" id="evStockTab">▤ Notre stock global</button><button class="ev-nav ${model.view==='global'?'active':''}" id="evGlobalTab">▥ Suivi global</button><label class="ev-showarch"><input type="checkbox" id="evShowArchived" ${model.showArchived?'checked':''}> Archivés</label></div>
     <div class="ev-groups">${visible.map(groupCard).join('')||'<div class="ev-empty">Aucun groupe suivi pour le moment. Crée un groupe pour commencer.</div>'}</div>
     <div id="evBody" class="ev-body"><div class="panel muted">Chargement…</div></div></div>`;
     $('#evReload',c).onclick=async()=>{await loadGroups();await reload()};
@@ -94,159 +94,79 @@ async function eventsView(c){
   function recvPanel(rows,g){const rec=rows.filter(x=>x.entryType==='reception'),grams=stats(rows).grams;return `<section class="ev-feature ev-recv"><div class="ev-feature-head"><div class="ev-feature-icon">⬡</div><div><h3>Réception</h3><p>Uniquement les têtes fraîches reçues</p></div>${editing()&&g.active?'<button id="evNewRecv" class="btn ev-action blue">+ Réception</button>':''}</div><div class="ev-feature-content"><div class="ev-recv-summary"><div><small>Total reçu</small><strong>${eventGramLabel(grams)}</strong></div><span class="ev-recv-symbol">❖</span></div><div class="table-wrap"><table class="ev-table ev-compact"><thead><tr><th>Élément</th><th>Quantité reçue</th><th>Unité</th><th>Date</th></tr></thead><tbody>${rec.slice(0,7).map(r=>`<tr><td>🌿 Têtes fraîches</td><td><b>${eventNum(r.quantity)}</b></td><td>${esc(r.unit)}</td><td>${eventDateDisplay(r.eventDate)}</td></tr>`).join('')||'<tr><td colspan="4" class="ev-no-rows">Aucune réception enregistrée</td></tr>'}</tbody></table></div><div class="ev-panel-note"><span>ℹ</span><div><b>Règle de réception</b><p>Seules les têtes fraîches peuvent être saisies, en grammes (g) ou kilogrammes (kg).</p></div></div></div></section>`}
   function totalsSummary(rows){const map=new Map();for(const r of rows){let k=r.entryType+'|'+r.item+'|'+r.unit,v=map.get(k);if(!v){v={entryType:r.entryType,item:r.item,unit:r.unit,quantity:0};map.set(k,v)}v.quantity+=r.quantity}return [...map.values()].sort((a,b)=>a.entryType.localeCompare(b.entryType)||a.item.localeCompare(b.item))}
   function groupSummary(rows){const x=totalsSummary(rows);return `<section class="ev-totals"><div class="ev-panel-head"><div><div class="eyebrow">RÉCAPITULATIF</div><h3>Totaux par élément</h3><p>Cumul des dons et réceptions pour la période filtrée.</p></div></div><div class="table-wrap"><table class="ev-table"><thead><tr><th>Type</th><th>Élément</th><th>Quantité totale</th><th>Unité</th></tr></thead><tbody>${x.map(t=>`<tr><td><span class="ev-type ${t.entryType}">${t.entryType==='don'?'Donné':'Reçu'}</span></td><td>${esc(t.item)}</td><td><b>${eventNum(t.quantity)}</b></td><td>${esc(t.unit)}</td></tr>`).join('')||'<tr><td colspan="4" class="ev-no-rows">Aucun mouvement à récapituler.</td></tr>'}</tbody></table></div></section>`}
-  function groupInventoryHTML(group,items){
-    const base=EVENT_ITEMS.map(p=>({name:p.name,unit:p.unit,icon:p.icon,quantity:0}));
+  // Une seule réserve pour tous les groupes. La fiche présente toujours la même réserve,
+  // sans créer ni afficher un inventaire individuel de partenaire.
+  function groupGlobalStockHTML(items){
+    const presets=STOCK_PRESETS.map(p=>({name:p.name,unit:p.unit,icon:p.icon,quantity:0}));
     const found=new Map((items||[]).map(x=>[x.name+'|'+x.unit,x]));
-    const rows=base.map(p=>({...p,...(found.get(p.name+'|'+p.unit)||{})}));
-    for(const v of items||[])if(!rows.some(p=>p.name===v.name&&p.unit===v.unit))rows.push({...v,icon:'▤'});
-    const totalArticles=rows.filter(x=>Number(x.quantity)>0).length;
-    return `<section class="ev-partner-inventory">
-      <div class="ev-panel-head"><div><div class="eyebrow">INVENTAIRE RELIÉ À LA FICHE</div><h3>Inventaire de ${esc(group.name)} <span class="ev-live-dot" title="Synchronisé automatiquement">● En direct</span></h3>
-      <p>Chaque don ajoute les quantités ici et les retire de « Notre stock global ». Les consommations et corrections de ce groupe ne modifient pas notre réserve.</p></div>
-      <button class="btn gold" type="button" id="evInventoryOpen">▤ Ouvrir l'inventaire →</button></div>
+    const rows=presets.map(p=>({...p,...(found.get(p.name+'|'+p.unit)||{})}));
+    for(const x of items||[])if(!rows.some(p=>p.name===x.name&&p.unit===x.unit))rows.push({...x,icon:'▤'});
+    return `<section class="ev-partner-inventory ev-common-summary">
+      <div class="ev-panel-head"><div><div class="eyebrow">UN SEUL STOCK • TOUS LES GROUPES</div><h3>Notre stock global Événements <span class="ev-live-dot" title="Données partagées entre tous les groupes">● En direct</span></h3>
+      <p>Ces quantités appartiennent à BLACK ACE. <b>Il n’existe plus de réserve individuelle par groupe.</b> Tous les partenaires utilisent cette même réserve, indépendante du stock de la boutique.</p></div>
+      <button class="btn gold" type="button" id="evOpenGlobalStock">▤ Gérer le stock global →</button></div>
       <div class="ev-partner-tiles">${rows.map(v=>`<div class="ev-partner-item"><span>${v.icon||'▤'}</span><div><small>${esc(v.name)}</small><b>${eventNum(v.quantity)} <em>${esc(v.unit)}</em></b></div></div>`).join('')}</div>
-      <p class="ev-partner-foot">${totalArticles} type(s) d'article avec une quantité supérieure à zéro · Toutes dates confondues · Mis à jour sur les comptes autorisés.</p>
+      <p class="ev-partner-foot">Les dons enregistrés ici diminuent cette réserve commune ; les réceptions de têtes fraîches l'augmentent. Les autres fiches voient exactement les mêmes quantités.</p>
     </section>`;
   }
-  function bindInventoryOpen(){const b=$('#evInventoryOpen',c);if(b)b.onclick=async()=>{model.view='inventory';await reload()}}
-  function groupPage(g,rows,inventory){
-    const e=$('#evBody',c);e.innerHTML=`<div class="ev-subhead"><div><div class="eyebrow">FICHE GROUPE</div><h2>${esc(g.name)} ${!g.active?'<span class="ev-pill">Archivé</span>':''}</h2><p>Fiche, inventaire et traçabilité du groupe reliés automatiquement aux mouvements.</p></div>
-    <div class="ev-subhead-actions"><button class="btn gold" type="button" id="evGoInventory">▤ Inventaire du groupe</button>${editing()?`<button class="btn" id="evEditGroup">✎ Modifier le groupe</button>`:''}</div></div>
-    <div id="evGroupInventorySummary">${groupInventoryHTML(g,inventory)}</div>${filterBar(false)}${statTiles(rows)}
-    <div class="ev-two-cols">${donPanel(rows,g)}${recvPanel(rows,g)}</div>
-    <div class="ev-two-cols ev-bottom">${groupSummary(rows)}<div class="ev-guidance"><div class="eyebrow">SUIVI AUTOMATIQUE</div><h3>Une fiche, deux inventaires synchronisés</h3><p>Les dons diminuent notre réserve BLACK ACE et augmentent l'inventaire de ce partenaire. Si un don est corrigé ou annulé, les deux inventaires sont mis à jour dans la même opération.</p><div class="ev-guidance-line">▤ <span>Inventaire propre au groupe, historique des ajustements et des dons</span></div><div class="ev-guidance-line">◷ <span>Traçabilité des réceptions et des dons par date</span></div></div></div>${historyHTML(rows)}`;
-    $('#evEditGroup',c)?.addEventListener('click',()=>groupModal(g));$('#evNewDon',c)?.addEventListener('click',()=>entryModal('don'));
-    $('#evNewRecv',c)?.addEventListener('click',()=>entryModal('reception'));$$('.ev-add-line',c).forEach(b=>b.onclick=()=>entryModal('don',null,b.dataset.item));
-    $('#evGoInventory',c).onclick=async()=>{model.view='inventory';await reload()};bindInventoryOpen();bindFilters();bindHistory(rows);
-  }
-  function groupStockHistory(groupId){return api('events?kind=stockHistory&groupId='+encodeURIComponent(groupId))}
-  function groupStockNode(item){return $(`[data-ev-group-stock-id="${item.id}"]`,c)}
-  function updateGroupStockNode(item,message=''){
-    const node=groupStockNode(item);if(!node)return;
-    const input=$('.ev-stock-input',node),status=$('.ev-stock-status',node);
-    if(input&&document.activeElement!==input)input.value=String(item.quantity);
-    if(status)status.textContent=message;
-  }
-  async function groupRefreshLedger(groupId){
-    if(!alive||model.view!=='inventory'||model.groupId!==groupId)return;
-    try{const h=await groupStockHistory(groupId);if(!alive||model.view!=='inventory'||model.groupId!==groupId)return;
-      const host=$('#evGroupLedger',c);if(host)host.innerHTML=groupStockLedgerHTML(h.rows||[]);
-    }catch(err){toast('Actualisation historique groupe : '+err.message)}
-  }
-  async function flushGroupStock(q){
-    if(q.timer){clearTimeout(q.timer);q.timer=null}
-    if(q.busy)return q.promise||Promise.resolve();
-    if(!q.delta)return;
-    const delta=qround(q.delta);q.delta=0;q.busy=true;updateGroupStockNode(q.item,'Sauvegarde…');
-    q.promise=(async()=>{try{
-        const data=await api('events','POST',{action:'changeStock',groupId:q.groupId,name:q.item.name,unit:q.item.unit,mode:'delta',value:delta,reason:'Ajustement manuel inventaire partenaire'});
-        q.item.quantity=Number(data.quantity);q.serverQty=q.item.quantity;updateGroupStockNode(q.item,'✓ Sauvegardé');await groupRefreshLedger(q.groupId);
-      }catch(err){q.item.quantity=q.serverQty;updateGroupStockNode(q.item,'Erreur');toast('Inventaire groupe : '+err.message)}
-      finally{q.busy=false;groupStockQueues.delete(q.groupId+'|'+q.item.id)}})();
-    return q.promise;
-  }
-  async function flushAllGroupStock(){await Promise.all([...groupStockQueues.values()].map(flushGroupStock))}
-  function queueGroupStock(item,groupId,delta){
-    const id=groupId+'|'+item.id;let q=groupStockQueues.get(id);
-    if(q?.busy)return toast('Enregistrement en cours…');
-    const next=qround(Number(item.quantity)+delta);if(next<0)return toast('Stock du groupe insuffisant');
-    if(next>100000000)return toast('Quantité maximale dépassée');
-    if(!q){q={item,groupId,delta:0,timer:null,busy:false,serverQty:Number(item.quantity)};groupStockQueues.set(id,q)}
-    q.delta=qround(q.delta+delta);item.quantity=next;updateGroupStockNode(item,'À sauvegarder…');
-    if(q.timer)clearTimeout(q.timer);q.timer=setTimeout(()=>void flushGroupStock(q),450);
-  }
-  async function setGroupStock(item,groupId,quantity,input){
-    const desired=Number(quantity);
-    if(!Number.isFinite(desired)||desired<0||desired>100000000||Math.abs(desired*1000-Math.round(desired*1000))>0.000001){toast('Quantité invalide');input.value=String(item.quantity);return}
-    const pending=groupStockQueues.get(groupId+'|'+item.id);if(pending)await flushGroupStock(pending);
-    input.disabled=true;updateGroupStockNode(item,'Sauvegarde…');
-    try{const data=await api('events','POST',{action:'changeStock',groupId,name:item.name,unit:item.unit,mode:'set',value:desired,reason:'Correction inventaire partenaire'});
-      item.quantity=Number(data.quantity);input.value=String(item.quantity);updateGroupStockNode(item,'✓ Sauvegardé');await groupRefreshLedger(groupId);
-    }catch(err){input.value=String(item.quantity);updateGroupStockNode(item,'Erreur');toast('Inventaire groupe : '+err.message)}finally{input.disabled=false}
-  }
-  function addGroupStockModal(g){
-    const options=[...EVENT_ITEMS.map(x=>`<option value="${esc(x.name)}">${x.icon} ${esc(x.name)}</option>`),'<option value="__custom">✚ Autre article</option>'].join('');
-    const d=modal(`<h2>Corriger l'inventaire de ${esc(g.name)}</h2><p class="muted">Cette opération ajuste uniquement le stock suivi chez ${esc(g.name)} et ne déplace rien depuis notre réserve commune. Pour une livraison réelle, utilise plutôt « + Don » sur la fiche.</p><form class="stack"><label>Article<select class="input" id="evPartnerPreset">${options}</select></label><label id="evPartnerCustomWrap" style="display:none">Nom de l'article<input id="evPartnerCustom" class="input" maxlength="90" placeholder="Nom"></label><div class="ev-form-pair"><label>Unité<select id="evPartnerUnit" class="input"></select></label><label>Quantité à ajouter<input name="quantity" class="input" type="number" min="0.001" step="0.001" max="100000000" value="1" required></label></div><label>Motif<input name="reason" class="input" maxlength="500" placeholder="Inventaire initial, correction…"></label><button type="submit" class="btn gold">Ajouter au groupe</button></form>`);
-    const sel=$('#evPartnerPreset',d),custom=$('#evPartnerCustom',d),unit=$('#evPartnerUnit',d),wrap=$('#evPartnerCustomWrap',d);
-    const update=()=>{wrap.style.display=sel.value==='__custom'?'grid':'none';custom.required=sel.value==='__custom';unit.innerHTML=stockUnitOptions(sel.value).map(x=>`<option value="${x}">${x}</option>`).join('')};sel.onchange=update;update();
-    $('form',d).onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),name=sel.value==='__custom'?custom.value.trim():sel.value,qty=Number(f.get('quantity')),btn=$('button[type="submit"]',d);
-      if(!name||name.length>90||!Number.isFinite(qty)||qty<=0)return toast('Article ou quantité invalide');btn.disabled=true;
-      try{await api('events','POST',{action:'changeStock',groupId:g.id,name,unit:unit.value,mode:'delta',value:qty,reason:String(f.get('reason')||'').trim()});d.remove();toast('Inventaire du groupe mis à jour');await reload()}
-      catch(err){toast('Impossible : '+err.message);btn.disabled=false}
-    };
-  }
-  function groupStockLedgerHTML(rows){
-    const names={don:'Don automatique',correction:'Correction de don',annulation:'Don annulé',initialisation:'Historique importé',manual:'Correction manuelle'};
-    return `<section class="ev-stock-ledger"><div class="ev-panel-head"><div><div class="eyebrow">HISTORIQUE • INVENTAIRE DU GROUPE</div><h3>Entrées et sorties de l'inventaire</h3><p>Les dons sont synchronisés automatiquement ; les ajustements manuels restent tracés.</p></div></div><div class="table-wrap"><table class="ev-table"><thead><tr><th>Date</th><th>Source</th><th>Article</th><th>Variation</th><th>Avant</th><th>Après</th><th>Auteur</th><th>Note</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${dt(r.createdAt)}</td><td><span class="ev-type ${r.sourceKind==='don'?'don':''}">${esc(names[r.sourceKind]||r.sourceKind||'Ajustement')}</span></td><td>${esc(r.name)} (${esc(r.unit)})</td><td><b class="${r.change>0?'ev-plus':'ev-minus'}">${r.change>0?'+':''}${eventNum(r.change)}</b></td><td>${eventNum(r.previousQuantity)}</td><td>${eventNum(r.resultingQuantity)}</td><td>${esc(r.actorName||'Système')}</td><td>${esc(r.reason||'—')}</td></tr>`).join('')||'<tr><td class="ev-no-rows" colspan="8">Aucun mouvement pour le moment.</td></tr>'}</tbody></table></div>${rows.length>=100?'<p class="muted">100 derniers mouvements affichés.</p>':''}</section>`;
-  }
-  function inventoryPage(g,items,hist){
-    model.inventoryCurrent=items;
-    const e=$('#evBody',c),locked=!editing()||!g.active;
-    const presets=EVENT_ITEMS.map(v=>({name:v.name,unit:v.unit,icon:v.icon}));
-    e.innerHTML=`<div class="ev-subhead"><div><div class="eyebrow">STOCK PARTENAIRE • ${esc(g.name)}</div><h2>Inventaire de ${esc(g.name)} <span class="ev-live-dot">● Synchronisé</span></h2><p>Inventaire propre au groupe, lié directement aux dons de sa fiche. Indépendant de notre stock principal et de notre réserve événements, sauf lorsqu'un don transfère du stock.</p></div><div class="ev-subhead-actions"><button type="button" class="btn" id="evReturnGroup">← Fiche du groupe</button>${locked?'':`<button type="button" class="btn gold" id="evGroupStockAdd">+ Ajustement</button>`}</div></div>
-      <div class="ev-stock-help"><span>⇄</span><div><b>Synchronisation automatique</b><p>Un don ajoute la quantité ici et la retire de notre stock global. En cas de correction ou suppression, les deux inventaires se recalculent. Une correction manuelle dans ce tableau n'ajuste QUE le stock du groupe : elle n'enregistre pas de don.</p></div></div>
-      <section class="ev-totals ev-stock-area"><div class="ev-panel-head"><div><div class="eyebrow">INVENTAIRE ACTUEL DU PARTENAIRE</div><h3>${items.length} article(s) suivi(s) chez ${esc(g.name)}</h3><p>Cliquer sur le nombre pour saisir une quantité précise, ou utiliser + / −.</p></div><button type="button" class="btn small" id="evInventoryRefresh">↻ Actualiser</button></div>
-      <div class="ev-stock-list" id="evPartnerStockList">${items.map(it=>{const preset=presets.find(p=>p.name===it.name&&p.unit===it.unit);return `<div class="ev-stock-card" data-ev-group-stock-id="${esc(it.id)}"><div class="ev-stock-ident"><span class="ev-stock-icon">${preset?.icon||'▤'}</span><div><b>${esc(it.name)}</b><small>${esc(g.name)} • ${esc(it.unit)}</small></div></div><div class="ev-stock-control">${locked?'':`<button class="ev-stock-btn" type="button" data-delta="-1" aria-label="Retirer 1">−</button>`}<input type="number" class="input ev-stock-input" min="0" step="0.001" max="100000000" value="${Number(it.quantity)}" ${locked?'readonly':'title="Saisie directe"'} aria-label="Quantité ${esc(it.name)}"><small class="ev-stock-unit">${esc(it.unit)}</small>${locked?'':`<button class="ev-stock-btn" type="button" data-delta="1" aria-label="Ajouter 1">+</button>`}</div><div class="ev-stock-status" aria-live="polite"></div></div>`}).join('')||'<div class="ev-no-stock"><b>Inventaire vide</b><p>Ajoute un don sur la fiche du groupe pour alimenter automatiquement cet inventaire.</p></div>'}</div></section><div id="evGroupLedger">${groupStockLedgerHTML(hist)}</div>`;
-    $('#evReturnGroup',c).onclick=async()=>{await flushAllGroupStock();model.view='group';await reload()};
-    $('#evInventoryRefresh',c).onclick=reload;
-    $('#evGroupStockAdd',c)?.addEventListener('click',()=>addGroupStockModal(g));
-    for(const item of items){const el=groupStockNode(item);if(!el||locked)continue;
-      $$('[data-delta]',el).forEach(btn=>btn.onclick=()=>queueGroupStock(item,g.id,Number(btn.dataset.delta)));
-      const input=$('.ev-stock-input',el);let start=String(item.quantity);
-      input.onfocus=()=>{start=String(item.quantity);input.select()};
-      input.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();input.blur()}else if(ev.key==='Escape'){input.value=start;input.dataset.discard='1';input.blur()}};
-      input.onblur=()=>{if(input.dataset.discard){delete input.dataset.discard;return}if(input.value.trim()===''||Number(input.value)===Number(item.quantity)){input.value=String(item.quantity);return}void setGroupStock(item,g.id,input.value,input)};
-    }
+  function bindGlobalStockOpen(){const b=$('#evOpenGlobalStock',c);if(b)b.onclick=async()=>{model.view='stock';await reload()}}
+  function groupPage(g,rows,sharedItems){
+    const e=$('#evBody',c);
+    e.innerHTML=`<div class="ev-subhead"><div><div class="eyebrow">FICHE PARTENAIRE</div><h2>${esc(g.name)} ${!g.active?'<span class="ev-pill">Archivé</span>':''}</h2><p>Dons, réceptions et historique du groupe. Tous les mouvements sont reliés au même stock global Événements.</p></div>
+      <div class="ev-subhead-actions"><button class="btn gold" type="button" id="evGoGlobalStock">▤ Notre stock global</button>${editing()?`<button class="btn" id="evEditGroup">✎ Modifier le groupe</button>`:''}</div></div>
+      <div id="evSharedStockSummary">${groupGlobalStockHTML(sharedItems)}</div>${filterBar(false)}${statTiles(rows)}
+      <div class="ev-two-cols">${donPanel(rows,g)}${recvPanel(rows,g)}</div>
+      <div class="ev-two-cols ev-bottom">${groupSummary(rows)}<div class="ev-guidance"><div class="eyebrow">SUIVI AUTOMATIQUE</div><h3>Une réserve commune, plusieurs partenaires</h3><p>Un don à ${esc(g.name)} retire la quantité de notre stock global Événements. Une réception de têtes fraîches l'augmente. Les modifications et suppressions corrigent la réserve automatiquement.</p><div class="ev-guidance-line">▤ <span>Aucun inventaire individuel par groupe : toute la réserve est centralisée chez BLACK ACE.</span></div><div class="ev-guidance-line">◷ <span>Les dons et réceptions restent attribués à leur groupe dans l'historique.</span></div></div></div>${historyHTML(rows)}`;
+    $('#evEditGroup',c)?.addEventListener('click',()=>groupModal(g));
+    $('#evNewDon',c)?.addEventListener('click',()=>entryModal('don'));
+    $('#evNewRecv',c)?.addEventListener('click',()=>entryModal('reception'));
+    $$('.ev-add-line',c).forEach(b=>b.onclick=()=>entryModal('don',null,b.dataset.item));
+    $('#evGoGlobalStock',c).onclick=async()=>{model.view='stock';await reload()};
+    bindGlobalStockOpen();bindFilters();bindHistory(rows);
   }
   function globalPage(rows){const e=$('#evBody',c);const donors=new Map();for(const r of rows){if(!donors.has(r.groupId))donors.set(r.groupId,[]);donors.get(r.groupId).push(r)}const cards=[...donors].map(([id,list])=>{const s=stats(list);return `<div class="ev-group-report"><b>${esc(groupName(id))}</b><div><span>${s.dons.length} don(s)</span><span>${eventGramLabel(s.grams)} reçu(s)</span></div><button class="btn small ev-open-group" data-id="${id}">Voir la fiche →</button></div>`}).join('');e.innerHTML=`<div class="ev-subhead"><div><div class="eyebrow">TOUS LES GROUPES</div><h2>Suivi global</h2><p>Récapitulatif de tous les dons et réceptions synchronisés avec la réserve commune (nouveaux mouvements).</p></div></div>${filterBar(true)}${statTiles(rows)}<div class="ev-two-cols ev-bottom">${groupSummary(rows)}<section class="ev-totals"><div class="ev-panel-head"><div><div class="eyebrow">PAR GROUPE</div><h3>Activité des partenaires</h3></div></div><div class="ev-group-reports">${cards||'<p class="muted">Aucune activité sur cette période.</p>'}</div></section></div>${historyHTML(rows,true)}`;
     bindFilters();bindHistory(rows);$$('.ev-open-group',c).forEach(b=>b.onclick=async()=>{model.groupId=b.dataset.id;model.view='group';await reload()})}
-  async function reload(){if(!alive)return;await flushAllStock();await flushAllGroupStock();if(!alive)return;const myReq=++model.requestId;layout();const body=$('#evBody',c);if(!model.groups.length&&(model.view==='group'||model.view==='inventory')){body.innerHTML=`<div class="ev-zero"><span>♣</span><h3>Ajoute ton premier partenaire</h3><p>Tu pourras ensuite enregistrer les dons et les têtes fraîches reçues, groupe par groupe.</p>${editing()?'<button class="btn gold" id="evFirstGroup">+ Créer un groupe</button>':''}</div>`;$('#evFirstGroup',c)?.addEventListener('click',()=>groupModal());return}
-    const current=currentGroup();if((model.view==='group'||model.view==='inventory')&&!current){body.innerHTML='<div class="panel muted">Sélectionne un groupe.</div>';return}
-    const groupId=(model.view==='group'||model.view==='inventory')?model.groupId:model.filters.groupId;
+  async function reload(){
+    if(!alive)return;
+    await flushAllStock();if(!alive)return;
+    const myReq=++model.requestId;
+    layout();const body=$('#evBody',c);
+    if(!model.groups.length&&model.view==='group'){
+      body.innerHTML=`<div class="ev-zero"><span>♣</span><h3>Ajoute ton premier partenaire</h3><p>Tu pourras ensuite enregistrer les dons et les têtes fraîches reçues par groupe, avec une réserve globale unique.</p>${editing()?'<button class="btn gold" id="evFirstGroup">+ Créer un groupe</button>':''}</div>`;
+      $('#evFirstGroup',c)?.addEventListener('click',()=>groupModal());return;
+    }
+    const current=currentGroup();
+    if(model.view==='group'&&!current){body.innerHTML='<div class="panel muted">Sélectionne un groupe.</div>';return}
+    const groupId=model.view==='group'?model.groupId:model.filters.groupId;
     try{
       if(model.view==='stock'){
         const [items,hist]=await Promise.all([api('events?kind=globalStock'),stockHistory()]);
         if(!alive||myReq!==model.requestId)return;
         stockPage(items,hist.rows||[]);
-      }else if(model.view==='inventory'){
-        const [items,hist]=await Promise.all([api('events?kind=stock&groupId='+encodeURIComponent(model.groupId)),groupStockHistory(model.groupId)]);
-        if(!alive||myReq!==model.requestId)return;
-        inventoryPage(current,items,hist.rows||[]);
       }else if(model.view==='group'){
-        const [rows,items]=await Promise.all([fetchRows({...model.filters,groupId}),api('events?kind=stock&groupId='+encodeURIComponent(model.groupId))]);
+        const [rows,items]=await Promise.all([fetchRows({...model.filters,groupId}),api('events?kind=globalStock')]);
         if(!alive||myReq!==model.requestId)return;
         groupPage(current,rows,items);
       }else{
-        const rows=await fetchRows({...model.filters,groupId});if(!alive||myReq!==model.requestId)return;
+        const rows=await fetchRows({...model.filters,groupId});
+        if(!alive||myReq!==model.requestId)return;
         globalPage(rows);
       }
-    }catch(err){if(!alive||myReq!==model.requestId)return;body.innerHTML=`<div class="panel"><b>Impossible de charger les événements</b><p class="muted">${esc(err.message)}</p><button class="btn" id="evRetry">Réessayer</button></div>`;$('#evRetry',c).onclick=reload}}
+    }catch(err){if(!alive||myReq!==model.requestId)return;
+      body.innerHTML=`<div class="panel"><b>Impossible de charger les événements</b><p class="muted">${esc(err.message)}</p><button class="btn" id="evRetry">Réessayer</button></div>`;
+      $('#evRetry',c).onclick=reload;
+    }
+  }
   await loadGroups();if(alive)await reload();
-  // Polling sans recharger la fiche ni fermer les fenêtres de saisie.
+  // Chaque fiche montre le stock GLOBAL mis à jour périodiquement sans perdre les saisies.
   liveRefreshTimer=setInterval(async()=>{
-    if(!alive||!['group','inventory'].includes(model.view)||document.hidden)return;
+    if(!alive||model.view!=='group'||document.hidden)return;
     const groupId=model.groupId,view=model.view;
-    if(view==='inventory'&&(groupStockQueues.size||$('.ev-stock-input:focus',c)))return;
     try{
-      const items=await api('events?kind=stock&groupId='+encodeURIComponent(groupId));
+      const items=await api('events?kind=globalStock');
       if(!alive||model.groupId!==groupId||model.view!==view)return;
-      if(view==='group'){
-        const dest=$('#evGroupInventorySummary',c),g=currentGroup();
-        if(dest&&g){dest.innerHTML=groupInventoryHTML(g,items);bindInventoryOpen()}
-      }else{
-        const known=model.inventoryCurrent||[],byId=new Map(known.map(x=>[x.id,x]));
-        if(items.length!==known.length||items.some(x=>!byId.has(x.id))){
-          if(!$('.modal',document))await reload();
-          return;
-        }
-        for(const remote of items){
-          const current=byId.get(remote.id);
-          if(current&&current.quantity!==Number(remote.quantity)){
-            current.quantity=Number(remote.quantity);
-            updateGroupStockNode(current,'↻ Synchronisé');
-          }
-        }
-      }
-    }catch(_){/* actualisation manuelle disponible */}
+      const dest=$('#evSharedStockSummary',c);
+      if(dest){dest.innerHTML=groupGlobalStockHTML(items);bindGlobalStockOpen()}
+    }catch(_){/* Bouton Actualiser disponible en cas de perte de réseau. */}
   },12000);
 }

@@ -24,7 +24,7 @@
 .ev-stock-availability{font-size:13px;border:1px solid #236e65;color:#b8f4e2;background:#092e30;border-radius:9px;padding:10px 12px;line-height:1.45}
 .ev-legacy{font-size:10px;color:#e2c98f;white-space:nowrap}
 
-/* V16.1 — Lien direct fiches groupes ⇄ inventaires dédiés, sans toucher au stock de la boutique */
+/* V16.2 — Affichage du stock commun Événements dans toutes les fiches, sans inventaires individuels */
 .ev-subhead-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
 .ev-partner-inventory{background:linear-gradient(110deg,#0b2734,#0a1726);border:1px solid #218e80;border-radius:12px;padding:19px 20px 15px;margin:5px 0 18px;box-shadow:inset 0 0 0 1px #124d4c}
 .ev-partner-inventory .ev-panel-head{align-items:center}
