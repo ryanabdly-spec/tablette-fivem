@@ -78,10 +78,10 @@ async function labGroupScreen(c,gid){
  if(!gid){c.innerHTML=labHead('Mon espace Labo','Aucun groupe associé à ce compte. Demande à Black Ace d’activer « Catégorie Labo » sur ton compte.');return}
  const d=await api('lab?kind=group&id='+encodeURIComponent(gid));
  LAB.lastData=d;LAB.groupId=d.group.id;
- if(!d.supplier){labClientScreen(c,d);return}
- const g=d.group,s=d.stock,pending=d.requests.filter(r=>r.status==='pending').length;
+ if(isLabClient() || !d.supplier || !d.stock){labClientScreen(c,d);return}
+ const g=d.group,s=d.stock||{heads:0,bricks:0,bags:0,status:'white'},pending=d.requests.filter(r=>r.status==='pending').length;
  c.innerHTML=labHead(g.name,'Fournisseur BLACK ACE · Suivi et préparation des lots',`<button class="btn" id="labBack">← Groupes</button><button class="btn" id="labReload">↻ Actualiser</button>`)+
- `<div class="lab-summary-row"><div><span id="labStatusHolder">${labStatus(pending>0?'red':s.status)}</span><span class="muted lab-pending-summary"><span data-pending-total>${pending}</span> déclaration(s) en attente</span></div><div class="lab-action-buttons"><button class="btn" id="labEditGroup">Modifier / supprimer</button><button class="btn" id="labRecipeNav">⚙ Ratios</button></div></div>
+ `<div class="lab-summary-row"><div><span id="labStatusHolder">${labStatus(pending>0?'red':(s?.status||'white'))}</span><span class="muted lab-pending-summary"><span data-pending-total>${pending}</span> déclaration(s) en attente</span></div><div class="lab-action-buttons"><button class="btn" id="labEditGroup">Modifier / supprimer</button><button class="btn" id="labRecipeNav">⚙ Ratios</button></div></div>
  <div class="lab-stock-grid">${[['heads','Têtes de weed','🌿'],['bricks','Briques','▣'],['bags','Pochons','◈']].map(([key,title,ic],i)=>`<div class="lab-stock-card stage-${i}"><div class="lab-stock-title"><span>${ic}</span><small>${title}</small></div><div class="lab-stock-count" data-stock-count="${key}">${labNum(s[key])}</div><div class="muted lab-stock-sub">${i===0?'Restant à transformer':i===1?'En attente de préparation':'Prêts à rendre'}</div></div>`).join('')}</div>
  ${labRecipeText(d.recipe)}
  <div class="lab-actions-panel"><div><h3>Étapes de transformation</h3><p class="muted">Les quantités évoluent uniquement après confirmation d'un dépôt ou réalisation d'une étape. Aucun ajustement manuel.</p></div><div class="lab-action-buttons"><button class="btn" id="labBricks">Transformer en briques</button><button class="btn gold" id="labBags">Préparer les pochons</button><button class="btn" id="labReturn">Restituer</button></div></div>
@@ -161,8 +161,8 @@ async function labSyncGroup(c,showErrors=false){
    const pill=$('[data-pending-pill]',c);if(pill)pill.textContent=d.supplier?`${pending} à confirmer`:`${pending} en attente`;
    const list=$('#labRequestsList',c);if(labSetHTML(list,labRequestHTML(d.requests,d.supplier)))labBindRequestButtons(c);
    if(d.supplier){
-     $$('.lab-stock-count[data-stock-count]',c).forEach(el=>{const next=labNum(d.stock[el.dataset.stockCount]);if(el.textContent!==next)el.textContent=next});
-     const status=$('#labStatusHolder',c);labSetHTML(status,labStatus(pending?'red':d.stock.status));
+     $$('.lab-stock-count[data-stock-count]',c).forEach(el=>{const next=labNum(d.stock?.[el.dataset.stockCount]||0);if(el.textContent!==next)el.textContent=next});
+     const status=$('#labStatusHolder',c);labSetHTML(status,labStatus(pending?'red':(d.stock?.status||'white')));
      const total=$('[data-pending-total]',c);if(total)total.textContent=pending;
      labSetHTML($('#labActionsList',c),labActionHTML(d.actions));
      const acts=$('[data-actions-total]',c);if(acts)acts.textContent=`${d.actions.length} opération(s)`;
